@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/Headcrab/clickhouse-mcp)](https://go.dev)
 [![License](https://img.shields.io/github/license/Headcrab/clickhouse-mcp)](LICENSE)
-[![Coverage](https://codecov.io/gh/Headcrab/letter_mcp/graph/badge.svg?token=WSRWMHXMTA)](https://codecov.io/gh/Headcrab/letter_mcp)
+[![Coverage](https://codecov.io/gh/Headcrab/clickhouse-mcp/graph/badge.svg?token=WSRWMHXMTA)](https://codecov.io/gh/Headcrab/clickhouse-mcp)
 
 MCP-совместимый сервер для взаимодействия с ClickHouse базами данных.
 
