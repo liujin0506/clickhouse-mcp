@@ -66,10 +66,6 @@ docker run -d -p 8080:8080 --name clickhouse-mcp \
   clickhouse-mcp:latest
 ```
 
-```powershell
-$env:PORT=8082; $env:CLICKHOUSE_URL="host.docker.internal:9000"; $env:CLICKHOUSE_USER="default" ; $env:CLICKHOUSE_PASSWORD="yourpassword"; $env:CLICKHOUSE_DB="default"; $env:CLICKHOUSE_SECURE=false; docker-compose up -d
-```
-
 ### Запуск с Docker Compose
 
 ```bash
@@ -78,6 +74,12 @@ docker-compose up -d
 
 # Запуск с пользовательским портом и другими параметрами
 PORT=9090 CLICKHOUSE_URL=host.docker.internal:9000/mydatabase docker-compose up -d
+```
+
+В Windows:
+
+```powershell
+$env:PORT=8082; $env:CLICKHOUSE_URL="host.docker.internal:9000"; $env:CLICKHOUSE_USER="default" ; $env:CLICKHOUSE_PASSWORD="yourpassword"; $env:CLICKHOUSE_DB="default"; $env:CLICKHOUSE_SECURE=false; docker-compose up -d
 ```
 
 ## Параметры командной строки
