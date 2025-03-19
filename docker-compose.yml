@@ -1,0 +1,21 @@
+services:
+  clickhouse-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clickhouse-mcp:latest
+    container_name: clickhouse-mcp
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - PORT=${PORT:-8080}
+      - CLICKHOUSE_URL=${CLICKHOUSE_URL:-localhost:9000/default}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-}
+      - CLICKHOUSE_SECURE=${CLICKHOUSE_SECURE:-false}
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway" 
