@@ -1,7 +1,7 @@
 # ClickHouse MCP сервер
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/Headcrab/letter_mcp)](https://go.dev)
-[![License](https://img.shields.io/github/license/Headcrab/letter_mcp)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/Headcrab/clickhouse-mcp)](https://go.dev)
+[![License](https://img.shields.io/github/license/Headcrab/clickhouse-mcp)](LICENSE)
 [![Coverage](https://codecov.io/gh/Headcrab/letter_mcp/graph/badge.svg?token=WSRWMHXMTA)](https://codecov.io/gh/Headcrab/letter_mcp)
 
 MCP-совместимый сервер для взаимодействия с ClickHouse базами данных.
@@ -16,7 +16,7 @@ MCP-совместимый сервер для взаимодействия с C
 
 ## Структура проекта
 
-```
+```tree
 clickhouse-mcp/
 ├── app/            # Основная логика приложения
 │   └── server.go   # Настройка и запуск сервера

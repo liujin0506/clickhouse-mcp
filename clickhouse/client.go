@@ -361,8 +361,43 @@ func normalizeQuery(query string) string {
 
 // containsLimitClause проверяет, содержит ли запрос уже LIMIT
 func containsLimitClause(query string) bool {
-	upperQuery := strings.ToUpper(query)
+	// Удаляем комментарии из запроса для проверки
+	queryWithoutComments := removeComments(query)
+	upperQuery := strings.ToUpper(queryWithoutComments)
 	return strings.Contains(upperQuery, " LIMIT ")
+}
+
+// removeComments удаляет SQL комментарии из строки запроса
+func removeComments(query string) string {
+	// Удаляем многострочные комментарии /* ... */
+	result := query
+	for {
+		startIdx := strings.Index(result, "/*")
+		if startIdx == -1 {
+			break
+		}
+
+		endIdx := strings.Index(result[startIdx:], "*/")
+		if endIdx == -1 {
+			// Если нет закрывающего комментария, обрезаем строку
+			result = result[:startIdx]
+			break
+		}
+
+		endIdx = startIdx + endIdx + 2 // +2 для учета "*/"
+		result = result[:startIdx] + " " + result[endIdx:]
+	}
+
+	// Удаляем однострочные комментарии --
+	lines := strings.Split(result, "\n")
+	for i, line := range lines {
+		commentIdx := strings.Index(line, "--")
+		if commentIdx != -1 {
+			lines[i] = line[:commentIdx]
+		}
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // endsWithSemicolon проверяет, заканчивается ли запрос точкой с запятой
