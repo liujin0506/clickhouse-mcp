@@ -21,6 +21,7 @@ type ServerConfig struct {
 	Password      string
 	Database      string
 	Secure        bool
+	Port          int
 }
 
 // Server инкапсулирует логику запуска и настройки MCP сервера
@@ -182,9 +183,10 @@ func (s *Server) Start() error {
 	}
 
 	if s.config.Transport == "sse" {
-		sseServer := server.NewSSEServer(s.mcpServer, server.WithBaseURL("http://localhost:8080"))
-		slog.Info("SSE server на порту 8080")
-		if err := sseServer.Start(":8080"); err != nil {
+		addr := fmt.Sprintf(":%d", s.config.Port)
+		sseServer := server.NewSSEServer(s.mcpServer, server.WithBaseURL(fmt.Sprintf("http://localhost%s", addr)))
+		slog.Info("SSE server запущен", "address", addr)
+		if err := sseServer.Start(addr); err != nil {
 			return fmt.Errorf("ошибка запуска SSE сервера: %w", err)
 		}
 	} else {
