@@ -12,7 +12,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// ServerConfig содержит конфигурацию сервера
+// ServerConfig 包含服务器配置
 type ServerConfig struct {
 	Transport     string
 	TestMode      bool
@@ -24,7 +24,7 @@ type ServerConfig struct {
 	Port          int
 }
 
-// Server инкапсулирует логику запуска и настройки MCP сервера
+// Server 封装了MCP服务器的启动和配置逻辑
 type Server struct {
 	config        ServerConfig
 	mcpServer     *server.MCPServer
@@ -33,23 +33,23 @@ type Server struct {
 	clickhouseDSN string
 }
 
-// ParseClickhouseURL разбирает URL подключения к ClickHouse
+// ParseClickhouseURL 解析ClickHouse连接URL
 func ParseClickhouseURL(url string) (string, int, string, error) {
-	// Для тестового режима вернем дефолтные значения
+	// 测试模式返回默认值
 	if url == "" || strings.HasPrefix(url, "localhost") {
 		return "localhost", 9000, "default", nil
 	}
 
-	// Удаляем протокол, если есть
+	// 移除协议前缀
 	cleanURL := url
 	cleanURL = strings.TrimPrefix(cleanURL, "clickhouse://")
 
-	// Разбиваем на части: host:port/database
+	// 分割为host:port/database格式
 	parts := strings.Split(cleanURL, "/")
 
 	var host string
-	var port int = 9000             // По умолчанию
-	var database string = "default" // По умолчанию
+	var port int = 9000             // 默认端口
+	var database string = "default" // 默认数据库
 
 	if len(parts) > 0 {
 		hostPort := parts[0]
@@ -59,7 +59,7 @@ func ParseClickhouseURL(url string) (string, int, string, error) {
 		if len(hostPortParts) > 1 {
 			_, err := fmt.Sscanf(hostPortParts[1], "%d", &port)
 			if err != nil {
-				port = 9000 // По умолчанию, если не удалось распарсить
+				port = 9000 // 解析失败使用默认值
 			}
 		}
 
@@ -69,68 +69,68 @@ func ParseClickhouseURL(url string) (string, int, string, error) {
 	}
 
 	if host == "" {
-		return "", 0, "", fmt.Errorf("неверный формат URL ClickHouse: %s", url)
+		return "", 0, "", fmt.Errorf("无效的ClickHouse URL格式: %s", url)
 	}
 
 	return host, port, database, nil
 }
 
-// NewServer создает новый экземпляр сервера
+// NewServer 创建新的服务器实例
 func NewServer(config ServerConfig) (*Server, error) {
-	// Настраиваем логгер
+	// 配置日志
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})))
 
-	// Создаем сервер
+	// 创建服务器
 	server := &Server{
 		config:        config,
 		clickhouseDSN: config.ClickhouseURL,
 	}
 
-	// В тестовом режиме не нужно подключаться к ClickHouse
+	// 测试模式不需要连接ClickHouse
 	if config.TestMode {
-		// Создаем MCP сервер
+		// 创建MCP服务器
 		server.mcpServer = server.createMCPServer()
 		return server, nil
 	}
 
-	// Подключаемся к ClickHouse
+	// 连接ClickHouse
 	if err := server.connectToClickhouse(); err != nil {
 		return nil, err
 	}
 
-	// Создаем обработчик инструментов
+	// 创建工具处理器
 	server.tools = mcp.NewToolHandler(server.chClient)
 
-	// Создаем MCP сервер
+	// 创建MCP服务器
 	server.mcpServer = server.createMCPServer()
 
-	// Регистрируем инструменты
+	// 注册工具
 	mcp.RegisterTools(server.mcpServer, server.tools)
 
 	return server, nil
 }
 
-// connectToClickhouse устанавливает соединение с ClickHouse
+// connectToClickhouse 建立与ClickHouse的连接
 func (s *Server) connectToClickhouse() error {
 	host, port, database, err := ParseClickhouseURL(s.config.ClickhouseURL)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("Подключение к ClickHouse",
+	slog.Info("连接ClickHouse",
 		"host", host,
 		"port", port,
 		"database", database,
 	)
 
-	// Если база данных указана в конфигурации, используем ее
+	// 如果配置中指定了数据库则使用配置值
 	if s.config.Database != "" {
 		database = s.config.Database
 	}
 
-	// Создаем клиента для подключения к ClickHouse
+	// 创建ClickHouse客户端
 	client, err := clickhouse.NewClient(clickhouse.Config{
 		Host:     host,
 		Port:     port,
@@ -140,42 +140,42 @@ func (s *Server) connectToClickhouse() error {
 		Secure:   s.config.Secure,
 	})
 	if err != nil {
-		return fmt.Errorf("ошибка подключения к ClickHouse: %w", err)
+		return fmt.Errorf("连接ClickHouse失败: %w", err)
 	}
 
 	s.chClient = client
 	return nil
 }
 
-// createMCPServer создает и настраивает MCP сервер
+// createMCPServer 创建并配置MCP服务器
 func (s *Server) createMCPServer() *server.MCPServer {
 	return server.NewMCPServer(
-		"clickhouse-client",  // имя сервера
-		"1.0.0",              // версия
-		server.WithLogging(), // включаем логирование
+		"clickhouse-client",  // 服务器名称
+		"1.0.0",              // 版本号
+		server.WithLogging(), // 启用日志
 	)
 }
 
-// RunTests запускает тестовые примеры
+// RunTests 运行测试示例
 func (s *Server) RunTests() {
-	slog.Info("Запуск тестовых примеров")
+	slog.Info("运行测试示例")
 
-	fmt.Println("=== Пример запроса для получения списка баз данных ===")
+	fmt.Println("=== 获取数据库列表请求示例 ===")
 	fmt.Println(`{"jsonrpc":"2.0","id":"test","method":"mcp.call","params":{"tool":"get_databases","arguments":{}}}`)
 
-	fmt.Println("\n=== Пример запроса для получения списка таблиц ===")
+	fmt.Println("\n=== 获取表列表请求示例 ===")
 	fmt.Println(`{"jsonrpc":"2.0","id":"test","method":"mcp.call","params":{"tool":"get_tables","arguments":{"database":"default"}}}`)
 
-	fmt.Println("\n=== Пример запроса для получения схемы таблицы ===")
+	fmt.Println("\n=== 获取表结构请求示例 ===")
 	fmt.Println(`{"jsonrpc":"2.0","id":"test","method":"mcp.call","params":{"tool":"get_schema","arguments":{"database":"default","table":"some_table"}}}`)
 
-	fmt.Println("\n=== Пример запроса для выполнения SQL запроса ===")
+	fmt.Println("\n=== 执行SQL查询请求示例 ===")
 	fmt.Println(`{"jsonrpc":"2.0","id":"test","method":"mcp.call","params":{"tool":"query","arguments":{"query":"SELECT 1 as test","limit":10}}}`)
 
-	fmt.Println("\nЗапустите сервер без флага -test и отправьте запросы через клиент MCP")
+	fmt.Println("\n请在不使用-test标志的情况下启动服务器并通过MCP客户端发送请求")
 }
 
-// Start запускает сервер
+// Start 启动服务器
 func (s *Server) Start() error {
 	if s.config.TestMode {
 		s.RunTests()
@@ -184,22 +184,22 @@ func (s *Server) Start() error {
 
 	if s.config.Transport == "sse" {
 		addr := fmt.Sprintf(":%d", s.config.Port)
-		sseServer := server.NewSSEServer(s.mcpServer, server.WithBaseURL(fmt.Sprintf("http://localhost%s", addr)))
-		slog.Info("SSE server запущен", "address", addr)
+		sseServer := server.NewSSEServer(s.mcpServer)
+		slog.Info("SSE服务器已启动", "address", addr)
 		if err := sseServer.Start(addr); err != nil {
-			return fmt.Errorf("ошибка запуска SSE сервера: %w", err)
+			return fmt.Errorf("启动SSE服务器失败: %w", err)
 		}
 	} else {
-		slog.Info("Запуск ClickHouse MCP сервера через stdio")
+		slog.Info("通过stdio启动ClickHouse MCP服务器")
 		if err := server.ServeStdio(s.mcpServer); err != nil {
-			return fmt.Errorf("ошибка запуска stdio сервера: %w", err)
+			return fmt.Errorf("启动stdio服务器失败: %w", err)
 		}
 	}
 
 	return nil
 }
 
-// Close закрывает соединения
+// Close 关闭连接
 func (s *Server) Close() error {
 	if s.chClient != nil {
 		return s.chClient.Close()

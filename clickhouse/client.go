@@ -11,28 +11,28 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 )
 
-// Client определяет интерфейс для работы с ClickHouse
+// Client 定义ClickHouse客户端接口
 type Client interface {
-	// GetDatabases возвращает список баз данных
+	// GetDatabases 获取数据库列表
 	GetDatabases(ctx context.Context) ([]string, error)
 
-	// GetTables возвращает список таблиц в указанной базе данных
+	// GetTables 获取指定数据库的表列表
 	GetTables(ctx context.Context, database string) ([]string, error)
 
-	// GetTableSchema возвращает схему указанной таблицы
+	// GetTableSchema 获取指定表结构
 	GetTableSchema(ctx context.Context, database, table string) ([]ColumnInfo, error)
 
-	// QueryData выполняет запрос и возвращает результаты
+	// QueryData 执行查询并返回结果
 	QueryData(ctx context.Context, query string, limit int) (QueryResult, error)
 
-	// GetConnection возвращает соединение с ClickHouse
+	// GetConnection 获取ClickHouse连接
 	GetConnection() driver.Conn
 
-	// Close закрывает соединение с ClickHouse
+	// Close 关闭连接
 	Close() error
 }
 
-// ColumnInfo содержит информацию о колонке таблицы
+// ColumnInfo 包含表列信息
 type ColumnInfo struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`
@@ -41,18 +41,18 @@ type ColumnInfo struct {
 	IsNested bool   `json:"is_nested,omitempty"`
 }
 
-// QueryResult содержит результат выполнения запроса
+// QueryResult 包含查询执行结果
 type QueryResult struct {
 	Columns []ColumnInfo     `json:"columns"`
 	Rows    []map[string]any `json:"rows"`
 }
 
-// DefaultClient - стандартная реализация клиента ClickHouse
+// DefaultClient ClickHouse客户端默认实现
 type DefaultClient struct {
 	conn driver.Conn
 }
 
-// Config содержит настройки подключения к ClickHouse
+// Config 包含ClickHouse连接配置
 type Config struct {
 	Host     string
 	Port     int
@@ -62,7 +62,7 @@ type Config struct {
 	Secure   bool
 }
 
-// NewClient создает новый экземпляр клиента ClickHouse
+// NewClient 创建ClickHouse客户端实例
 func NewClient(cfg Config) (Client, error) {
 	opts := &clickhouse.Options{
 		Addr: []string{fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)},
@@ -95,22 +95,22 @@ func NewClient(cfg Config) (Client, error) {
 
 	conn, err := clickhouse.Open(opts)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка подключения к ClickHouse: %w", err)
+		return nil, fmt.Errorf("连接ClickHouse失败: %w", err)
 	}
 
-	// Проверяем соединение
+	// 检查连接
 	if err := conn.Ping(context.Background()); err != nil {
-		return nil, fmt.Errorf("ошибка проверки соединения: %w", err)
+		return nil, fmt.Errorf("连接检查失败: %w", err)
 	}
 
 	return &DefaultClient{conn: conn}, nil
 }
 
-// GetDatabases возвращает список баз данных
+// GetDatabases 获取数据库列表
 func (c *DefaultClient) GetDatabases(ctx context.Context) ([]string, error) {
 	rows, err := c.conn.Query(ctx, "SHOW DATABASES")
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения списка баз данных: %w", err)
+		return nil, fmt.Errorf("获取数据库列表失败: %w", err)
 	}
 	defer rows.Close()
 
@@ -118,9 +118,9 @@ func (c *DefaultClient) GetDatabases(ctx context.Context) ([]string, error) {
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			return nil, fmt.Errorf("ошибка сканирования базы данных: %w", err)
+			return nil, fmt.Errorf("数据库扫描失败: %w", err)
 		}
-		// Пропускаем системные базы данных
+		// 跳过系统数据库
 		if name != "system" && name != "information_schema" {
 			databases = append(databases, name)
 		}
@@ -129,11 +129,11 @@ func (c *DefaultClient) GetDatabases(ctx context.Context) ([]string, error) {
 	return databases, nil
 }
 
-// GetTables возвращает список таблиц в указанной базе данных
+// GetTables 获取指定数据库的表列表
 func (c *DefaultClient) GetTables(ctx context.Context, database string) ([]string, error) {
 	rows, err := c.conn.Query(ctx, fmt.Sprintf("SHOW TABLES FROM %s", database))
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения списка таблиц: %w", err)
+		return nil, fmt.Errorf("获取表列表失败: %w", err)
 	}
 	defer rows.Close()
 
@@ -141,7 +141,7 @@ func (c *DefaultClient) GetTables(ctx context.Context, database string) ([]strin
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			return nil, fmt.Errorf("ошибка сканирования таблицы: %w", err)
+			return nil, fmt.Errorf("表扫描失败: %w", err)
 		}
 		tables = append(tables, name)
 	}
@@ -149,12 +149,12 @@ func (c *DefaultClient) GetTables(ctx context.Context, database string) ([]strin
 	return tables, nil
 }
 
-// GetTableSchema возвращает схему указанной таблицы
+// GetTableSchema 获取指定表结构
 func (c *DefaultClient) GetTableSchema(ctx context.Context, database, table string) ([]ColumnInfo, error) {
 	query := fmt.Sprintf("DESCRIBE TABLE %s.%s", database, table)
 	rows, err := c.conn.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения схемы таблицы: %w", err)
+		return nil, fmt.Errorf("获取表结构失败: %w", err)
 	}
 	defer rows.Close()
 
@@ -164,7 +164,7 @@ func (c *DefaultClient) GetTableSchema(ctx context.Context, database, table stri
 		position++
 		var name, typ, defaultType, defaultExpression, comment, codecExpression, ttlExpression string
 		if err := rows.Scan(&name, &typ, &defaultType, &defaultExpression, &comment, &codecExpression, &ttlExpression); err != nil {
-			return nil, fmt.Errorf("ошибка сканирования колонки: %w", err)
+			return nil, fmt.Errorf("列扫描失败: %w", err)
 		}
 
 		isArray := IsArrayType(typ)
@@ -179,39 +179,39 @@ func (c *DefaultClient) GetTableSchema(ctx context.Context, database, table stri
 		})
 	}
 
-	// Проверяем ошибки после цикла
+	// 检查循环后的错误
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("ошибка при получении схемы таблицы: %w", err)
+		return nil, fmt.Errorf("获取表结构时发生错误: %w", err)
 	}
 
 	return columns, nil
 }
 
-// QueryData выполняет запрос и возвращает результаты в виде массива строк
+// QueryData 执行查询并返回结果
 func (c *DefaultClient) QueryData(ctx context.Context, query string, limit int) (QueryResult, error) {
-	// Нормализуем запрос
+	// 规范化查询
 	cleanQuery := normalizeQuery(query)
 
 	limitedQuery := cleanQuery
 	if limit > 0 {
-		// Проверяем, содержит ли запрос уже LIMIT
+		// 检查是否已包含LIMIT
 		if !containsLimitClause(cleanQuery) {
 			limitedQuery = fmt.Sprintf("%s LIMIT %d", cleanQuery, limit)
 		}
 	}
 
-	// Проверяем соединение перед выполнением запроса
+	// 执行前检查连接
 	if err := c.ensureConnection(ctx); err != nil {
-		return QueryResult{}, fmt.Errorf("ошибка подключения: %w", err)
+		return QueryResult{}, fmt.Errorf("连接错误: %w", err)
 	}
 
 	rows, err := c.conn.Query(ctx, limitedQuery)
 	if err != nil {
-		return QueryResult{}, fmt.Errorf("ошибка выполнения запроса: %w", err)
+		return QueryResult{}, fmt.Errorf("查询执行失败: %w", err)
 	}
 	defer rows.Close()
 
-	// Получаем информацию о колонках
+	// 获取列信息
 	columnTypes := rows.ColumnTypes()
 	columnNames := rows.Columns()
 
@@ -230,10 +230,10 @@ func (c *DefaultClient) QueryData(ctx context.Context, query string, limit int) 
 		})
 	}
 
-	// Получаем данные
+	// 获取数据
 	var results []map[string]any
 
-	// Создаем набор временных переменных для сканирования результатов
+	// 创建临时变量用于扫描结果
 	destPointers := make([]any, len(columnNames))
 	stringVars := make([]string, len(columnNames))
 	intVars := make([]int64, len(columnNames))
@@ -263,15 +263,15 @@ func (c *DefaultClient) QueryData(ctx context.Context, query string, limit int) 
 	}
 
 	for rows.Next() {
-		// Сканируем строку в предварительно созданные переменные
+		// 扫描行到预定义变量
 		if err := rows.Scan(destPointers...); err != nil {
-			return QueryResult{}, fmt.Errorf("ошибка сканирования строки: %w", err)
+			return QueryResult{}, fmt.Errorf("行扫描失败: %w", err)
 		}
 
-		// Создаем map для текущей строки
+		// 创建当前行的map
 		row := make(map[string]any)
 
-		// Копируем значения из временных переменных в результирующую map
+		// 复制值到结果map
 		for i, col := range columns {
 			switch col.Type {
 			case "String":
@@ -287,20 +287,15 @@ func (c *DefaultClient) QueryData(ctx context.Context, query string, limit int) 
 			case "Date", "DateTime":
 				row[col.Name] = timeVars[i].Format(time.RFC3339)
 			default:
-				// Для остальных типов копируем значение как есть
+				// 处理其他类型
 				v := anyVars[i]
 
-				// Обработка специальных типов
 				switch val := v.(type) {
 				case []byte:
-					// Конвертируем []byte в string
 					row[col.Name] = string(val)
 				case []any:
-					// Обрабатываем массивы
 					if col.IsArray && len(val) > 0 {
-						// Проверяем первый элемент массива
 						if _, ok := val[0].([]byte); ok {
-							// Конвертируем массив []byte в []string
 							strArray := make([]string, len(val))
 							for j, item := range val {
 								if byteItem, ok := item.([]byte); ok {
@@ -325,9 +320,9 @@ func (c *DefaultClient) QueryData(ctx context.Context, query string, limit int) 
 		results = append(results, row)
 	}
 
-	// Проверяем наличие ошибок после цикла
+	// 检查结果处理错误
 	if err := rows.Err(); err != nil {
-		return QueryResult{}, fmt.Errorf("ошибка при обработке результатов: %w", err)
+		return QueryResult{}, fmt.Errorf("结果处理错误: %w", err)
 	}
 
 	return QueryResult{
@@ -336,40 +331,37 @@ func (c *DefaultClient) QueryData(ctx context.Context, query string, limit int) 
 	}, nil
 }
 
-// ensureConnection проверяет состояние соединения и пытается восстановить его при необходимости
+// ensureConnection 检查并维持连接
 func (c *DefaultClient) ensureConnection(ctx context.Context) error {
 	if err := c.conn.Ping(ctx); err != nil {
-		// Если соединение потеряно, логируем ошибку
-		return fmt.Errorf("потеряно соединение с ClickHouse: %w", err)
+		return fmt.Errorf("ClickHouse连接丢失: %w", err)
 	}
 	return nil
 }
 
-// normalizeQuery выполняет нормализацию SQL запроса
+// normalizeQuery 规范化SQL查询
 func normalizeQuery(query string) string {
-	// Удаляем точки с запятой в конце запроса
+	// 去除末尾分号
 	query = strings.TrimSpace(query)
 	if len(query) > 0 && query[len(query)-1] == ';' {
 		query = query[:len(query)-1]
 	}
 
-	// Удаляем лишние пробелы
+	// 去除多余空格
 	query = strings.TrimSpace(query)
 
 	return query
 }
 
-// containsLimitClause проверяет, содержит ли запрос уже LIMIT
+// containsLimitClause 检查是否包含LIMIT子句
 func containsLimitClause(query string) bool {
-	// Удаляем комментарии из запроса для проверки
 	queryWithoutComments := removeComments(query)
 	upperQuery := strings.ToUpper(queryWithoutComments)
 	return strings.Contains(upperQuery, " LIMIT ")
 }
 
-// removeComments удаляет SQL комментарии из строки запроса
+// removeComments 移除SQL注释
 func removeComments(query string) string {
-	// Удаляем многострочные комментарии /* ... */
 	result := query
 	for {
 		startIdx := strings.Index(result, "/*")
@@ -379,16 +371,14 @@ func removeComments(query string) string {
 
 		endIdx := strings.Index(result[startIdx:], "*/")
 		if endIdx == -1 {
-			// Если нет закрывающего комментария, обрезаем строку
 			result = result[:startIdx]
 			break
 		}
 
-		endIdx = startIdx + endIdx + 2 // +2 для учета "*/"
+		endIdx = startIdx + endIdx + 2
 		result = result[:startIdx] + " " + result[endIdx:]
 	}
 
-	// Удаляем однострочные комментарии --
 	lines := strings.Split(result, "\n")
 	for i, line := range lines {
 		commentIdx := strings.Index(line, "--")
@@ -400,31 +390,30 @@ func removeComments(query string) string {
 	return strings.Join(lines, "\n")
 }
 
-// endsWithSemicolon проверяет, заканчивается ли запрос точкой с запятой
+// endsWithSemicolon 检查是否以分号结尾
 func endsWithSemicolon(query string) bool {
 	trimmed := strings.TrimSpace(query)
 	return len(trimmed) > 0 && trimmed[len(trimmed)-1] == ';'
 }
 
-// GetConnection возвращает соединение с ClickHouse
+// GetConnection 获取ClickHouse连接
 func (c *DefaultClient) GetConnection() driver.Conn {
 	return c.conn
 }
 
-// Close закрывает соединение с ClickHouse
+// Close 关闭连接
 func (c *DefaultClient) Close() error {
 	return c.conn.Close()
 }
 
-// IsArrayType проверяет, является ли тип массивом
+// IsArrayType 检查是否为数组类型
 func IsArrayType(typeName string) bool {
 	return len(typeName) >= 6 && typeName[:5] == "Array"
 }
 
-// GetBaseType возвращает базовый тип из названия типа ClickHouse
+// GetBaseType 获取基础类型
 func GetBaseType(typeName string) string {
 	if IsArrayType(typeName) {
-		// Удаляем Array() и получаем внутренний тип
 		return typeName[6 : len(typeName)-1]
 	}
 	return typeName
